@@ -12,6 +12,6 @@
   "dependencies": {
     "express": "^4.17.1",
     "mongoose": "^5.11.17",
-    "sentiment": "^5.0.2"
+    "monkeylearn": "^3.4.0"
   }
 }

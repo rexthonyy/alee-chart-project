@@ -1,12 +1,14 @@
 const express = require('express');
 //const mongoose = require('mongoose');
-const Sentiment = require('sentiment');
+const MonkeyLearn = require('monkeylearn')
 
 const app = express();
+
 app.use(express.json());
 app.use(express.static('public'));
 
-sentiment = new Sentiment();
+const ml = new MonkeyLearn('b1ee507b93b9f75b0d9658bec3f0d42f2344a68c');
+let model_id = 'cl_pi3C7JiL';
 
 //database connection
 const DB_URL = "mongodb://127.0.0.1:27017/alee-chart";
@@ -24,12 +26,34 @@ app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
 // Input : text (string)
 // Process : sentiment analysis
 // Output : score (0 - 4) (number)
-app.post("/", (req, res) => {
-	let text = req.body.inputText;
-	let result = sentiment.analyze(text).comparative;
-	let score = Math.round(aMap(result, -5, 5, 0, 4)); //AFINN produces a rating between -5 and 5
-	res.json({ status: 'success', score: score, text: text });
+app.post("/", async (req, res) => {
+	let data = [req.body.inputText];
+	ml.classifiers.classify(model_id, data).then(result => {
+		let score = getScore(result.body[0].classifications[0]);
+		res.json({status: 'success', score: score, text: result.body[0].text});
+	});
 });
+
+function getScore(result){
+	let tag_name = result.tag_name;
+	let confidence = result.confidence * 100;
+
+	if(tag_name == 'Positive'){
+		if(confidence > 80){
+			return 4;
+		}else{
+			return 3;
+		}
+	}else if(tag_name == 'Negative'){
+		if(confidence > 80){
+			return 0;
+		}else{
+			return 1;
+		}
+	}else{
+		return 2;
+	}
+}
 
 function aMap(val, minF, maxF, minT, maxT){
 	return minT + (((val - minF)/(maxF - minF)) * (maxT - minT));

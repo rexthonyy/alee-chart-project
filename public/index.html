@@ -7,6 +7,8 @@
 	<title>Sample Chart</title>
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
 	<style>
+		@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap');
+
 		*{
 			margin: 0;
 			padding: 0;
@@ -14,6 +16,7 @@
 		}
 		body{
 			background-color: rgb(240, 241, 255);
+			font-family: 'Roboto Mono', monospace;
 		}
 		.columns-2{
 			display: grid;
@@ -37,6 +40,9 @@
 		}
 		.padding-24px{
 			padding: 24px;
+		}
+		h1{
+			margin-bottom: 32px;
 		}
 		.desc{
 			font-size: 16px;
@@ -69,10 +75,20 @@
 			cursor: pointer;
 			background-color: rgb(43, 43, 200);
 		}
+		.version{
+			font-size: 16px;
+			color: gray;
+			margin-left: 32px;
+		}
 		.chart{
 			width: 600px;
 			height: 600px;
 		}
+		@media (max-width: 700px){
+				.columns-2{
+					display: block;
+				}
+			}
 	</style>
 </head>
 
@@ -80,9 +96,11 @@
 	<div class="columns-2">
 		<div class="">
 			<div class="vertical-align padding-24px">
+				<h1>Sentiment Analyzer</h1>
 				<p class="desc">Enter the input from the chatbot here</p>
 				<textarea id="inputElm" class="inputText" type="text"></textarea><br/>
 				<button id="submitBtn" class="submitBtn">Submit</button>
+				<span class="version">v 2.0</span>
 			</div>
 		</div>
 		<div class="">
