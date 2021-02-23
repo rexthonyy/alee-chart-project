@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<title>Sample Chart</title>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+	<style>
+		*{
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		body{
+			background-color: rgb(240, 241, 255);
+		}
+		.columns-2{
+			display: grid;
+			grid-template-columns: 50% 50%;
+			grid-template-rows: auto;
+			width: 100%;
+			height: 100vh;
+		}
+
+		.border{
+			border: 1px solid black;
+		}
+
+		.vertical-align{
+			position: relative;
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		.horizontal-align{
+			margin: auto;
+		}
+		.padding-24px{
+			padding: 24px;
+		}
+		.desc{
+			font-size: 16px;
+			color: gray;
+		}
+		.inputText{
+			margin-top: 32px;
+			border: 1px solid gray;
+			padding: 8px;
+			font-size: 16px;
+			border-radius: 4px;
+			color: black;
+			width: 100%;
+			resize: none;
+			height: 100px;
+		}
+		.inputText:focus{
+			border: 1px solid black;
+		}
+		.submitBtn{
+			margin-top: 32px;
+			padding: 16px;
+			background-color: rgb(84, 22, 134);
+			border-radius: 8px;
+			color: white;
+			padding-left: 64px;
+			padding-right: 64px;
+		}
+		.submitBtn:hover{
+			cursor: pointer;
+			background-color: rgb(43, 43, 200);
+		}
+		.chart{
+			width: 600px;
+			height: 600px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="columns-2">
+		<div class="">
+			<div class="vertical-align padding-24px">
+				<p class="desc">Enter the input from the chatbot here</p>
+				<textarea id="inputElm" class="inputText" type="text"></textarea><br/>
+				<button id="submitBtn" class="submitBtn">Submit</button>
+			</div>
+		</div>
+		<div class="">
+			<canvas id="chart" class="chart vertical-align horizontal-align"></canvas>
+		</div>
+	</div>
+</body>
+
+<script>
+	let inputElm = document.getElementById("inputElm");
+	let submitBtn = document.getElementById("submitBtn");
+	let chartElm = document.getElementById("chart");
+
+	let chartData = {};
+	chartData['0'] = 0;
+	chartData['1'] = 0;
+	chartData['2'] = 0;
+	chartData['3'] = 0;
+	chartData['4'] = 0;
+
+	let myChart = new Chart(chartElm, {
+	    type: 'pie',
+	    data: {
+	        labels: ['Very sad', 'Sad', 'Neutral', 'Happy', 'Very happy'],
+	        datasets: [{
+	            data: [0, 0, 0, 0, 0],
+	            backgroundColor: [
+	                'rgba(255, 129, 32, 1)',
+	                'rgba(54, 162, 235, 1)',
+	                'rgba(255, 206, 86, 1)',
+	                'rgba(75, 192, 192, 1)',
+	                'rgba(153, 40, 255, 1)'
+	            ],
+	            borderWidth: 1
+	        }]
+	    }
+	});
+
+	inputElm.addEventListener("keyup", submitText);
+	
+	function submitText(event){
+		event.preventDefault();
+		if(event.keyCode === 13){
+			sendText();
+		}
+	}
+
+	submitBtn.onclick = () => {
+		sendText();
+	};
+
+	function sendText(){
+		let text = inputElm.value.trim();
+		if(text.length > 0){
+			inputElm.value = "";
+
+			const url = "http://localhost:3000"
+			let data = { inputText: text };
+
+			sendPostRequest(url, data)
+			.then(json => {
+				if(json.status == "success"){
+					let newScore = json.score;
+					let oldScore = chartData[`${newScore}`];
+					chartData[`${newScore}`] = oldScore + 1;
+					//console.log(myChart);
+					myChart.data.datasets[0].data[newScore] = chartData[`${newScore}`];
+					myChart.update();
+					//showStat();
+					//console.log(myChart.data.datasets[0].data);
+				}else{
+					showError(json.error);
+				}
+			}).catch(err => {
+				showError(err);
+			});
+		}
+	}
+
+	async function sendPostRequest(url, data){
+		let response = await fetch(url, {
+			method: "POST",
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(data)
+		});
+
+		let json = await response.json();
+
+		return json;
+	}
+
+	function showError(error){
+		console.error(error);
+	}
+
+	function showStat(){
+		for(const [key, value] of Object.entries(chartData)){
+			console.log(`data[${key}] =>  ${value}`);
+	    }
+	}
+</script>
+</html>
