@@ -139,7 +139,7 @@
 		if(text.length > 0){
 			inputElm.value = "";
 
-			const url = "http://localhost:3000"
+			const url = getHostUrl();
 			let data = { inputText: text };
 
 			sendPostRequest(url, data)
@@ -184,6 +184,10 @@
 		for(const [key, value] of Object.entries(chartData)){
 			console.log(`data[${key}] =>  ${value}`);
 	    }
+	}
+
+	function getHostUrl(){
+		return window.location.protocol + "//" + window.location.host + "/";
 	}
 </script>
 </html>
