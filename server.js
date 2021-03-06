@@ -39,19 +39,11 @@ function getScore(result){
 	let confidence = result.confidence * 100;
 
 	if(tag_name == 'Positive'){
-		if(confidence > 80){
-			return 4;
-		}else{
-			return 3;
-		}
+		return "positive";
 	}else if(tag_name == 'Negative'){
-		if(confidence > 80){
-			return 0;
-		}else{
-			return 1;
-		}
+		return "negative";
 	}else{
-		return 2;
+		return "neutral";
 	}
 }
 

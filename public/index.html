@@ -4,187 +4,161 @@
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-	<title>Sample Chart</title>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
-	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap');
-
-		*{
-			margin: 0;
-			padding: 0;
-			box-sizing: border-box;
-		}
-		body{
-			background-color: rgb(240, 241, 255);
-			font-family: 'Roboto Mono', monospace;
-		}
-		.columns-2{
-			display: grid;
-			grid-template-columns: 50% 50%;
-			grid-template-rows: auto;
-			width: 100%;
-			height: 100vh;
-		}
-
-		.border{
-			border: 1px solid black;
-		}
-
-		.vertical-align{
-			position: relative;
-			top: 50%;
-			transform: translateY(-50%);
-		}
-		.horizontal-align{
-			margin: auto;
-		}
-		.padding-24px{
-			padding: 24px;
-		}
-		h1{
-			margin-bottom: 32px;
-		}
-		.desc{
-			font-size: 16px;
-			color: gray;
-		}
-		.inputText{
-			margin-top: 32px;
-			border: 1px solid gray;
-			padding: 8px;
-			font-size: 16px;
-			border-radius: 4px;
-			color: black;
-			width: 100%;
-			resize: none;
-			height: 100px;
-		}
-		.inputText:focus{
-			border: 1px solid black;
-		}
-		.submitBtn{
-			margin-top: 32px;
-			padding: 16px;
-			background-color: rgb(84, 22, 134);
-			border-radius: 8px;
-			color: white;
-			padding-left: 64px;
-			padding-right: 64px;
-		}
-		.submitBtn:hover{
-			cursor: pointer;
-			background-color: rgb(43, 43, 200);
-		}
-		.version{
-			font-size: 16px;
-			color: gray;
-			margin-left: 32px;
-		}
-		.chart{
-			width: 600px;
-			height: 600px;
-		}
-		@media (max-width: 700px){
-				.columns-2{
-					display: block;
-				}
-				.columns-2 div div, #chart{
-					top: 0;
-					transform: none;
-				}
-				#chart{
-					margin-top: 32px;
-				}
-			}
-	</style>
+	<title>Sentiment Analyzer</title>
+	<script src="index.js"></script>
+	<script src="xlsx.full.min.js"></script>
+	<script src="FileSaver.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="index.css">
 </head>
 
 <body>
-	<div class="columns-2">
-		<div class="">
-			<div class="vertical-align padding-24px">
-				<h1>Sentiment Analyzer</h1>
-				<p class="desc">Enter the input from the chatbot here</p>
-				<textarea id="inputElm" class="inputText" type="text"></textarea><br/>
-				<button id="submitBtn" class="submitBtn">Submit</button>
-				<span class="version">v 2.0</span>
-			</div>
+	<div class="center">
+		<h1 class="mt-32px">Sentiment Analyzer</h1>
+
+		<div class="mt-32px">
+			<input id="fileElm" type="file" accept=".xlsx, .xlsm, .xltx, .xltm" />
 		</div>
-		<div class="">
-			<canvas id="chart" class="chart vertical-align horizontal-align"></canvas>
+
+		<div class="mt-32px">
+			<button id="submitBtn">Submit</button>
+		</div>
+
+		<div class="modalBackground">
+			<div class="modal center">
+				<img src="loading.gif" style="width:30px; height: 30px;"/>
+				<p style="margin-top: 8px;">Please wait...</p>
+			</div>
+			<div class="modal center">
+				<p>Your document is ready!</p>
+				<button id="downloadBtn" class="mt-32px"><i class="fa fa-download"></i> Download</button>
+			</div>
 		</div>
 	</div>
 </body>
 
 <script>
-	let inputElm = document.getElementById("inputElm");
+	let fileElm = document.getElementById("fileElm");
 	let submitBtn = document.getElementById("submitBtn");
-	let chartElm = document.getElementById("chart");
+	let modalBackground = document.getElementsByClassName("modalBackground")[0];
+	let modals = document.getElementsByClassName("modal");
+	let downloadBtn = document.getElementById("downloadBtn");
 
-	let chartData = {};
-	chartData['0'] = 0;
-	chartData['1'] = 0;
-	chartData['2'] = 0;
-	chartData['3'] = 0;
-	chartData['4'] = 0;
+	let customerQuestions = [];
+	let customerQuestionsResponse = [];
+	let wbout = null;
 
-	let myChart = new Chart(chartElm, {
-	    type: 'pie',
-	    data: {
-	        labels: ['Very sad', 'Sad', 'Neutral', 'Happy', 'Very happy'],
-	        datasets: [{
-	            data: [0, 0, 0, 0, 0],
-	            backgroundColor: [
-	                'rgba(255, 20, 20, 1)',
-	                'rgba(255, 162, 135, 1)',
-	                'rgba(255, 206, 86, 1)',
-	                'rgba(75, 192, 77, 1)',
-	                'rgba(33, 255, 55, 1)'
-	            ],
-	            borderWidth: 1
-	        }]
-	    }
+	fileElm.addEventListener("change", (e) => {
+		customerQuestions = [];
+		readXlsxFile(e.target.files[0], { dateFormat: 'MM/DD/YY' }).then(function(data) {
+			for(let i = 0; i < data.length; i++){
+				if(i > 0){
+					let text = data[i][0];
+					customerQuestions.push(text);
+				}
+			}
+		}, function (error) {
+			console.error(error)
+			alert("Error while parsing Excel file. See console output for the error stack trace.")
+		})
 	});
-
-	inputElm.addEventListener("keyup", submitText);
 	
-	function submitText(event){
-		event.preventDefault();
-		if(event.keyCode === 13){
-			sendText();
+	function showModal(index){
+		hideModal();
+		modalBackground.style.display = "flex";
+		modals[index].style.display = "block";
+	}
+
+	function hideModal(){
+		modalBackground.style.display = "none";
+		for(let i = 0; i < modals.length; i++){
+			modals[i].style.display = "none";
 		}
 	}
 
-	submitBtn.onclick = () => {
-		sendText();
-	};
+	function setWindowClick(){
+		window.onclick = () => {
+			hideModal();
+		};
+	}
 
-	function sendText(){
-		let text = inputElm.value.trim();
-		if(text.length > 0){
-			inputElm.value = "";
+	function unsetWindowClick(){
+		window.onclick = () => {}
+	}
 
-			const url = getHostUrl();
-			let data = { inputText: text };
+	submitBtn.onclick = (e) => {
+		stopClickPropagation(e);
+		if(customerQuestions.length > 0){
+			customerQuestionsResponse = [];
+			for(let i = 0; i < customerQuestions.length; i++){
 
-			sendPostRequest(url, data)
-			.then(json => {
-				if(json.status == "success"){
-					let newScore = json.score;
-					let oldScore = chartData[`${newScore}`];
-					chartData[`${newScore}`] = oldScore + 1;
-					//console.log(myChart);
-					myChart.data.datasets[0].data[newScore] = chartData[`${newScore}`];
-					myChart.update();
-					//showStat();
-					//console.log(myChart.data.datasets[0].data);
-				}else{
-					showError(json.error);
-				}
-			}).catch(err => {
-				showError(err);
-			});
+				let text = customerQuestions[i];
+
+				showModal(0);
+				unsetWindowClick();
+
+				const url = getHostUrl();
+				let data = { inputText: text };
+
+				sendPostRequest(url, data)
+				.then(json => {
+					if(json.status == "success"){
+						customerQuestionsResponse.push(json);
+						if(customerQuestions.length == customerQuestionsResponse.length){
+							//create the downloadable file
+							var wb = XLSX.utils.book_new();
+							wb.Props = {
+				                Title: "Customer Questions",
+				                Subject: "Sentiment Analysis",
+				                Author: "Me",
+				                CreatedDate: new Date()
+					        };
+					        wb.SheetNames.push("Customer Response");
+
+					        var ws_data = [];
+
+					        customerQuestionsResponse.forEach(result => {
+					        	ws_data.push([result.text, result.score]);
+					        });
+
+					        var ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+					        wb.Sheets["Customer Response"] = ws;
+
+					        wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
+
+							setWindowClick();
+							showModal(1);
+						}
+					}else{
+						showError(json.error);
+					}
+				}).catch(err => {
+					showError(err);
+				});
+			}
+		}else{
+			alert("Please select a file");
 		}
+	}
+
+	function s2ab(s) { 
+        var buf = new ArrayBuffer(s.length); //convert s to arrayBuffer
+        var view = new Uint8Array(buf);  //create uint8array as viewer
+        for (var i=0; i<s.length; i++) view[i] = s.charCodeAt(i) & 0xFF; //convert to octet
+        	return buf;    
+    }
+
+	downloadBtn.onclick = () => {
+		saveAs(new Blob([s2ab(wbout)],{type:"application/octet-stream"}), 'analysisResult.xlsx');
+	}
+
+	modals[0].onclick = (e) => {
+		stopClickPropagation(e);
+	}
+
+	modals[1].onclick = (e) => {
+		stopClickPropagation(e);
 	}
 
 	async function sendPostRequest(url, data){
@@ -205,14 +179,17 @@
 		console.error(error);
 	}
 
-	function showStat(){
-		for(const [key, value] of Object.entries(chartData)){
-			console.log(`data[${key}] =>  ${value}`);
-	    }
-	}
-
 	function getHostUrl(){
 		return window.location.protocol + "//" + window.location.host + "/";
+	}
+
+	function stopClickPropagation(e){
+		if(!e) e = window.event;
+		if(e.stopPropagation){
+			e.stopPropagation();
+		}else{
+			e.cancelBubble = true;
+		}
 	}
 </script>
 </html>
