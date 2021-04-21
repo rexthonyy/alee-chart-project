@@ -45,7 +45,7 @@ button{
 }
 
 .modal{
-	display: none;
+	display: block;
 	width: 70%;
 	background: white;
 	border-radius: 8px;

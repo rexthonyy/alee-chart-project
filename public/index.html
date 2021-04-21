@@ -16,14 +16,36 @@
 	<div class="center">
 		<h1 class="mt-32px" style="color: rgb(42, 42, 42);">Sentiment Analyzer</h1>
 
-		<p class="mt-32px" style="color: #7DC1C1;">Please select the excel file, then click submit to analyze</p>
-		<div class="mt-32px">
-			<input id="fileElm" type="file" accept=".xlsx, .xlsm, .xltx, .xltm" />
+		<p class="mt-32px" style="color: #7DC1C1;">Please enter the Google Sheet details to analyze</p>
+		<div class="mt-32px" style="text-align: center">
+			<p>Google doc id</p>
+			<input id="docId" type="text" style="margin-top: 8px; text-align: center; font-size: 16px;"/>
 		</div>
-
+		<div class="mt-32px" style="text-align: center">
+			<p>Worksheet index</p>
+			<input id="sheetIndex" type="number" min="0" style="margin-top: 8px; text-align: center; font-size: 16px;"/>
+		</div>
+		
 		<div class="mt-32px">
 			<button id="submitBtn">Submit</button>
 		</div>
+		
+		<div style="margin-top: 62px; margin-bottom: 32px;">
+			<h2 style="color: #7DC1C1;">How to use</h2>
+			<p style="margin-top: 64px">1) Share the Google Sheet doc with "<span style="color: red;">sheets@poetic-bulwark-311415.iam.gserviceaccount.com</span>"</p>
+			<img src="share_sheet.png" width="50%" style="margin-top: 16px">
+			
+			<p style="margin-top: 32px">2) The first column should have a heading called message</p>
+			<img src="sheet_structure.png" width="50%" style="margin-top: 16px">
+			
+			<p style="margin-top: 32px">3) Get the Google Doc id from the url</p>
+			<img src="google_doc_id.png" width="50%" style="margin-top: 16px">
+			
+			<p style="margin-top: 32px">4) Get the sheet index from the bottom of the page starting from index "0"</p>
+			<img src="google_sheet_index.png" width="50%" style="margin-top: 16px">
+		</div>
+		
+		
 
 		<div class="modalBackground">
 			<div class="modal center">
@@ -39,30 +61,14 @@
 </body>
 
 <script>
-	let fileElm = document.getElementById("fileElm");
+	let docId = document.getElementById("docId");
+	let sheetIndex = document.getElementById("sheetIndex");
 	let submitBtn = document.getElementById("submitBtn");
 	let modalBackground = document.getElementsByClassName("modalBackground")[0];
 	let modals = document.getElementsByClassName("modal");
 	let downloadBtn = document.getElementById("downloadBtn");
 
-	let customerQuestions = [];
-	let customerQuestionsResponse = [];
 	let wbout = null;
-
-	fileElm.addEventListener("change", (e) => {
-		customerQuestions = [];
-		readXlsxFile(e.target.files[0], { dateFormat: 'MM/DD/YY' }).then(function(data) {
-			for(let i = 0; i < data.length; i++){
-				if(i > 0){
-					let text = data[i][0];
-					customerQuestions.push(text);
-				}
-			}
-		}, function (error) {
-			console.error(error)
-			alert("Error while parsing Excel file. See console output for the error stack trace.")
-		})
-	});
 	
 	function showModal(index){
 		hideModal();
@@ -89,58 +95,48 @@
 
 	submitBtn.onclick = (e) => {
 		stopClickPropagation(e);
-		if(customerQuestions.length > 0){
-			customerQuestionsResponse = [];
-			for(let i = 0; i < customerQuestions.length; i++){
+		showModal(0);
+		unsetWindowClick();
+		
+		const url = getHostUrl();
+		let data = { docId: docId.value, sheetIndex: sheetIndex.value };
 
-				let text = customerQuestions[i];
+		sendPostRequest(url, data)
+		.then(json => {
+			if(json.status == "success"){
+				//console.log(json);
+				let sentiments = json.result;
+				
+				//create the downloadable file
+				var wb = XLSX.utils.book_new();
+				wb.Props = {
+					Title: "Customer Questions",
+					Subject: "Sentiment Analysis",
+					Author: "Me",
+					CreatedDate: new Date()
+				};
+				wb.SheetNames.push("Customer Response");
 
-				showModal(0);
-				unsetWindowClick();
+				var ws_data = [];
 
-				const url = getHostUrl();
-				let data = { inputText: text };
-
-				sendPostRequest(url, data)
-				.then(json => {
-					if(json.status == "success"){
-						customerQuestionsResponse.push(json);
-						if(customerQuestions.length == customerQuestionsResponse.length){
-							//create the downloadable file
-							var wb = XLSX.utils.book_new();
-							wb.Props = {
-				                Title: "Customer Questions",
-				                Subject: "Sentiment Analysis",
-				                Author: "Me",
-				                CreatedDate: new Date()
-					        };
-					        wb.SheetNames.push("Customer Response");
-
-					        var ws_data = [];
-
-					        customerQuestionsResponse.forEach(result => {
-					        	ws_data.push([result.text, result.score]);
-					        });
-
-					        var ws = XLSX.utils.aoa_to_sheet(ws_data);
-
-					        wb.Sheets["Customer Response"] = ws;
-
-					        wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
-
-							setWindowClick();
-							showModal(1);
-						}
-					}else{
-						showError(json.error);
-					}
-				}).catch(err => {
-					showError(err);
+				sentiments.forEach(result => {
+					ws_data.push([result.message, result.score]);
 				});
+
+				var ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+				wb.Sheets["Customer Response"] = ws;
+
+				wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'});
+
+				setWindowClick();
+				showModal(1);
+			}else{
+				showError(json.error);
 			}
-		}else{
-			alert("Please select a file");
-		}
+		}).catch(err => {
+			showError(err);
+		});
 	}
 
 	function s2ab(s) { 
